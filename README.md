@@ -420,27 +420,3 @@ The main practical finding is that:
 * **robust reasoning** can improve resilience but is expensive,
 * **stacked gated defenses** offer a more practical compromise by activating stronger reasoning only when risk is detected.
 
----
-
-## Submission note
-
-This repository is submitted for the CS7602/CS8602 coursework case study:
-**Using AI to Explore a Security Research Problem**.
-
-It includes:
-
-* code
-* evaluator
-* configuration files
-* search scripts
-* reproducible reduced-scale commands
-* final summary results
-
-```
-
-A couple of small follow-ups before submission:
-- remove `src/rag_poison_defense.egg-info/` from git and commit that cleanup
-- fill in `results/final_summary.md` with your final large-run numbers
-
-If you paste your **four large-run metrics**, I’ll also give you a finished `final_summary.md` and then the one-page case study.
-```
