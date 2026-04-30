@@ -1,0 +1,18 @@
+
+.venv/
+__pycache__/
+*.pyc
+.env
+
+external/
+
+data/nq_passages.jsonl
+data/nq_targets.jsonl
+data/nq_clean.jsonl
+
+results/seed7/
+results/seed13/
+results/large_seed7/
+
+# OS / misc
+.DS_Store

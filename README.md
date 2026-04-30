@@ -1,0 +1,231 @@
+# RAG Poisoning Defense Project
+
+This repository is a reduced-scale, end-to-end implementation of your midterm plan:
+
+- baseline RAG retrieval and answer generation
+- black-box PoisonedRAG-style passage injection
+- RAGDEFENDER-style post-retrieval filtering
+- RobustRAG-style isolate-then-aggregate generation
+- stacked gated defense
+- iterative AI-driven candidate search
+- logging of ASR, clean accuracy, poison-in-context rate, latency, and LLM calls
+
+It is designed so you can:
+
+1. run a local smoke test on a tiny demo dataset,
+2. swap in Natural Questions data for the real project, and
+3. run the full search loop with OpenAI + Contriever.
+
+## Repository layout
+
+```text
+configs/
+  demo.yaml
+  openai_contriever.yaml
+
+data/
+  demo_passages.jsonl
+  demo_targets.jsonl
+  demo_clean.jsonl
+
+src/ragstack/
+  attack.py
+  cli.py
+  config.py
+  data.py
+  evaluator.py
+  llm.py
+  metrics.py
+  retriever.py
+  search.py
+  types.py
+  utils.py
+  defenses/
+    ragdefender.py
+    robustrag.py
+```
+
+## What is implemented
+
+### 1) Black-box PoisonedRAG-style attack
+
+For each target question, the code generates or templates `N=5` injected passages that are meant to be retrieved and support the attacker-chosen target answer.
+
+### 2) Baselines
+
+- `mode=none`: vanilla RAG
+- `mode=ragdefender`: retrieval filtering only
+- `mode=robustrag`: isolate and aggregate on the raw retrieved set
+- `mode=stacked_gated`: RAGDEFENDER first, then RobustRAG only if the gate fires
+
+### 3) RAGDEFENDER-style filter
+
+Two grouping options are implemented:
+
+- `clustering`: 2-way agglomerative clustering plus TF-IDF top-term heuristic
+- `concentration`: mean/median similarity concentration heuristic
+
+The filter estimates `Nadv`, ranks suspicious passages, and removes the top suspicious items.
+
+### 4) RobustRAG-style keyword aggregation
+
+For each passage, the LLM extracts:
+
+- a candidate answer
+- supporting keywords
+
+Then the system aggregates stable keywords and asks the LLM for a final answer using only consolidated evidence.
+
+### 5) Candidate search loop
+
+The search loop follows the midterm design:
+
+- generate an initial grid over grouping, `alpha`, `beta`, `tau`, and `s`
+- evaluate all candidates
+- keep top candidates under constraints
+- ask the LLM to propose edits as JSON
+- prune duplicates and repeat
+
+## Data format
+
+### Passages file
+
+JSONL with one object per line:
+
+```json
+{"passage_id":"p1","text":"...","source":"kb","metadata":{}}
+```
+
+### Target set file
+
+```json
+{"example_id":"t1","question":"...","gold_answer":"...","target_answer":"...","metadata":{}}
+```
+
+### Clean set file
+
+```json
+{"example_id":"c1","question":"...","gold_answer":"...","target_answer":null,"metadata":{}}
+```
+
+## Installation
+
+Create an environment and install the package.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -e .
+```
+
+If you do not want editable install, this also works:
+
+```bash
+pip install -r requirements.txt
+export PYTHONPATH=src
+```
+
+## Small demo
+
+This uses:
+
+- TF-IDF retrieval
+- a tiny local demo dataset
+- a mock LLM backend
+- templated attack passages
+
+Run one evaluation:
+
+```bash
+python -m ragstack.cli evaluate --config configs/demo.yaml
+```
+
+Run the search loop:
+
+```bash
+python -m ragstack.cli search --config configs/demo.yaml
+```
+
+Or use the helper script:
+
+```bash
+./scripts/run_demo.sh
+```
+
+Outputs are written under `results/`.
+
+## Full project run with OpenAI + Contriever
+
+### Step 1: prepare data
+
+Create these files:
+
+- `data/nq_passages.jsonl`
+- `data/nq_targets.jsonl`
+- `data/nq_clean.jsonl`
+
+You can keep them reduced-scale for the coursework README reproducibility section.
+
+### Step 2: install heavier dependencies
+
+```bash
+pip install -e .
+```
+
+### Step 3: set API key
+
+```bash
+export OPENAI_API_KEY=your_key_here
+```
+
+### Step 4: run one candidate
+
+```bash
+python -m ragstack.cli evaluate \
+  --config configs/openai_contriever.yaml \
+  --mode stacked_gated \
+  --grouping clustering \
+  --tau 2 \
+  --alpha 0.5 \
+  --beta 3
+```
+
+### Step 5: run the full search loop
+
+```bash
+python -m ragstack.cli search --config configs/openai_contriever.yaml
+```
+
+## Main outputs
+
+Each evaluation writes:
+
+- `records.jsonl`: per-example logs
+- `metrics.json`: aggregate metrics
+
+The search run writes:
+
+- `search_summary.json`
+
+## How the metrics are computed
+
+- **Attack success rate**: target response contains the attacker answer
+- **Clean accuracy**: clean response contains the gold answer
+- **Poison-in-context rate**: a poisoned passage remains in the final safe context
+- **Average latency**: mean runtime per example
+- **Average LLM calls**: mean number of model calls per example
+
+## Important note on scope
+
+This code is intentionally a **course-project implementation** rather than a claim of exact line-by-line reproduction of the official PoisonedRAG, RAGDEFENDER, or RobustRAG repositories.
+
+It is aligned with your midterm fallback plan: a single evaluation harness with minimal integrated versions of the defense components that you can run, modify, and discuss clearly in the case study.
+
+## Suggested next steps for your submission
+
+1. Replace the demo files with your reduced Natural Questions subset.
+2. Run `none`, `ragdefender`, `robustrag`, and `stacked_gated`.
+3. Save final metrics and a few failure cases.
+4. Add plots for ASR vs clean accuracy vs LLM calls.
+5. Write the one-page case study using the generated logs.

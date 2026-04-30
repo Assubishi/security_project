@@ -1,0 +1,42 @@
+experiment_name: demo_tfidf_mock
+seed: 7
+output_dir: results
+scoring: substring
+
+data:
+  passages_path: data/demo_passages.jsonl
+  targets_path: data/demo_targets.jsonl
+  clean_path: data/demo_clean.jsonl
+
+retriever:
+  kind: tfidf
+  top_k: 5
+
+llm:
+  provider: mock
+  model: mock
+  temperature: 0.0
+  max_output_tokens: 128
+
+attack:
+  enabled: true
+  n_injected: 5
+  use_llm_generation: false
+
+search:
+  rounds: 2
+  top_k_keep: 3
+  min_clean_accuracy: 0.2
+  max_avg_llm_calls: 12.0
+  proposer_num_candidates: 6
+
+default_candidate:
+  mode: stacked_gated
+  grouping: clustering
+  tfidf_m: 6
+  aggregation: keyword
+  alpha: 0.5
+  beta: 3
+  trigger: Nadv>=tau
+  tau: 2
+  s: 3

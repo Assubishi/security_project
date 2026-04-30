@@ -1,0 +1,47 @@
+experiment_name: nq_contriever_openai
+seed: 7
+output_dir: results
+scoring: substring
+
+data:
+  passages_path: data/nq_passages.jsonl
+  targets_path: data/nq_targets.jsonl
+  clean_path: data/nq_clean.jsonl
+
+retriever:
+  kind: contriever
+  model_name: facebook/contriever-msmarco
+  top_k: 5
+  batch_size: 16
+  use_gpu: false
+
+llm:
+  provider: openai
+  model: gpt-5.4-mini
+  api_key_env: OPENAI_API_KEY
+  temperature: 0.0
+  max_output_tokens: 256
+  reasoning_effort: none
+
+attack:
+  enabled: true
+  n_injected: 5
+  use_llm_generation: true
+
+search:
+  rounds: 3
+  top_k_keep: 4
+  min_clean_accuracy: 0.3
+  max_avg_llm_calls: 10.0
+  proposer_num_candidates: 10
+
+default_candidate:
+  mode: stacked_gated
+  grouping: clustering
+  tfidf_m: 6
+  aggregation: keyword
+  alpha: 0.5
+  beta: 3
+  trigger: Nadv>=tau
+  tau: 2
+  s: 3
